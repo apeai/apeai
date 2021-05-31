@@ -8,18 +8,30 @@ from lxml import etree
 import logging
 import datetime
 import json
+import os
 
-EXIST_NEWS_URL = [i.replace('\n', '') for i in open(
-    '/home/ec2-user/py_file/exist_news_url.txt', 'r', encoding='utf8').readlines()]
+BasePath=os.getcwd()
+print(BasePath)
+ExistsPath=os.path.join(BasePath, "exist_news_url.txt")
+SpiderPath = os.path.join(BasePath, "spider_log")
+spider_log = os.path.join(SpiderPath, f'xmc-{str(datetime.datetime.now()).split(" ")[0]}.log')
+if not os.path.exists(SpiderPath):
+    os.makedirs(SpiderPath)   
+
+school_name_file = os.path.join(BasePath, "school_name.txt")
+EXIST_NEWS_URL = [i.replace('\n', '') for i in open(ExistsPath, 'r', encoding='utf8').readlines()]
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(filename)s [line:%(lineno)d] %(levelname)s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    filename=f'/home/ec2-user/spider_log/xmc-{str(datetime.datetime.now()).split(" ")[0]}.log',
+    #filename=f'/home/ec2-user/spider_log/xmc-{str(datetime.datetime.now()).split(" ")[0]}.log',
+    filename=spider_log,
     filemode='w',
 )
 
+
+logging.info('xmc start at:{}'.format(datetime.datetime.now()))
 
 class Spider:
     """
@@ -41,18 +53,20 @@ class Spider:
             "data science",
             "Computer Science",
         ]
-        self.school_name = [i.replace('\n', '') for i in open('/home/ec2-user/py_file/school_name.txt', encoding='utf8').readlines()]
+        self.school_name = [i.replace('\n', '') for i in open(school_name_file, encoding='utf8').readlines()]
 
     @staticmethod
     def save_data(item):
-        url = 'http://ape-ai-api.ap-southeast-1.elasticbeanstalk.com/mapeai/post/addPost'
+        #url = 'http://ape-ai-api.ap-southeast-1.elasticbeanstalk.com/mapeai/post/addPost'
+        url = "http://localhost:3000/mapeai/post/addPost"
         headers = {"content-type": "application/json"}
-        with open('/home/ec2-user/py_file/exist_news_url.txt', 'a', encoding='utf8') as f:
+        with open(ExistsPath, 'a', encoding='utf8') as f:
             f.write(item['Url'] + '\n')
         response = requests.post(url, json=item, headers=headers)
         if response.status_code != 200:
             logging.error(f' - {datetime.datetime.now()} = 入库失败 === {json.dumps(item)} === {response.text}')
-            # print(f' - {datetime.datetime.now()} = 入库失败 === {json.dumps(item)} === {response.text}')
+        else:
+            logging.info("item:", item.title)
 
     def get_response(self, params):
         while True:

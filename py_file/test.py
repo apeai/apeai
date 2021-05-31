@@ -11,16 +11,27 @@ import datetime
 from lxml.html.clean import Cleaner
 import logging
 
-EXIST_NEWS_URL = [i.replace('\n', '') for i in open(
-    '/home/ec2-user/py_file/exist_news_url.txt', 'r', encoding='utf8').readlines()]
+BasePath=os.getcwd()
+ExistsPath=os.path.join(BasePath, "exist_news_url.txt")
+SpiderPath = os.path.join(BasePath, "spider_log")
+tmpfile = f'{str(datetime.datetime.now()).split(" ")[0]}.log'
+spider_log = os.path.join(SpiderPath, tmpfile)
+if not os.path.exists(SpiderPath):
+    os.makedirs(SpiderPath)
+school_name_file = os.path.join(BasePath, "school_name.txt")
+
+EXIST_NEWS_URL = [i.replace('\n', '') for i in open(ExistsPath, 'r', encoding='utf8').readlines()]
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(filename)s [line:%(lineno)d] %(levelname)s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    filename=f'/home/ec2-user/spider_log/{str(datetime.datetime.now()).split(" ")[0]}.log',
+    #filename=f'/home/ec2-user/spider_log/{str(datetime.datetime.now()).split(" ")[0]}.log',
+    filename=spider_log,
     filemode='w',
 )
+
+logging.info('normal start at:{}'.format(datetime.datetime.now()))
 
 
 def myjoin(base, url):
@@ -32,7 +43,8 @@ def myjoin(base, url):
 
 def save_data(item):
     cleaner = Cleaner(safe_attrs=['href', 'src'], remove_tags=['*'])
-    url = 'http://ape-ai-api.ap-southeast-1.elasticbeanstalk.com/mapeai/post/addPost'
+    #url = 'http://ape-ai-api.ap-southeast-1.elasticbeanstalk.com/mapeai/post/addPost'
+    url = 'http://localhost:3000/mapeai/post/addPost'
     headers = {"content-type": "application/json"}
     data = {
         "Title": item.get('职位名称'),
@@ -51,8 +63,10 @@ def save_data(item):
         "WTag": item.get('工作类型标签'),
         "Medias": item.get('medias')
     }
-    with open('/home/ec2-user/py_file/exist_news_url.txt', 'a', encoding='utf8') as f:
+    #with open('/home/ec2-user/py_file/exist_news_url.txt', 'a', encoding='utf8') as f:
+    with open(ExistsPath, 'a', encoding='utf8') as f:
         f.write(data['Url'] + '\n')
+    #logging.error(f' - {datetime.datetime.now()} = 入库 === {json.dumps(data)}')
     response = requests.post(url, json=data, headers=headers)
     if response.status_code != 200:
         logging.error(f' - {datetime.datetime.now()} = 入库失败 === {json.dumps(data)}')
@@ -197,8 +211,7 @@ class Academicpositions:
                 ]
             }
             response = self.get_html(url=self.url, method='POST', data=json.dumps(data))
-            logging.info(
-                f" -网站：Academicpositions    关键词：{key}    页码：{page} = {datetime.datetime.now()} = {len(response['results'][0]['hits'])}")
+            logging.info(f" -网站：Academicpositions    关键词：{key}    页码：{page} = {datetime.datetime.now()} = {len(response['results'][0]['hits'])}")
             if not len(response['results'][0]['hits']):
                 break
             for i in range(len(response['results'][0]['hits'])):
